@@ -4,8 +4,6 @@
 
 HAVEN is a comprehensive, privacy-first platform designed to provide a "Safe Haven" for women facing domestic violence, harassment, or traumatic situations. By combining **covert communication (Steganography)**, **Local AI (Ollama)**, and **Map Intelligence**, HAVEN bridges the gap between fear and action.
 
-![HAVEN Banner](https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2000&auto=format&fit=crop)
-
 ---
 
 ## 🚩 The Problem
