@@ -9,6 +9,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { generateSOSNarrative, decomposeSOSData } from '../utils/ai';
 import { saveCase, getSessionPin } from '../utils/storage';
+import { sendSOSToWebhook } from '../utils/webhook';
 import { SOSCase } from '../types';
 import { toast } from 'sonner';
 import { useTranslation } from '../utils/i18n';
@@ -110,6 +111,13 @@ export function CreatePostPage() {
 
       // Step 4: Save to localStorage
       saveCase(newCase);
+
+      // Step 5: Send SOS alert to n8n webhook (non-blocking)
+      sendSOSToWebhook({
+        severity: newCase.severity,
+        location: newCase.location,
+        emotion: newCase.nature, // Using nature as emotion indicator
+      });
 
       toast.success(t('create_post_gen_success'));
 

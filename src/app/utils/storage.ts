@@ -119,3 +119,34 @@ export const deleteSafeContact = (id: string): void => {
     console.error('Error deleting safe contact:', error);
   }
 };
+
+// Admin Alert Management
+const ADMIN_ALERTS_KEY = 'adminAlerts';
+
+export const getAdminAlerts = (): any[] => {
+  try {
+    const data = localStorage.getItem(ADMIN_ALERTS_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (error) {
+    console.error('Error reading admin alerts:', error);
+    return [];
+  }
+};
+
+export const saveAdminAlert = (alert: any): void => {
+  try {
+    const alerts = getAdminAlerts();
+    alerts.unshift(alert); // Add to beginning for newest first
+    localStorage.setItem(ADMIN_ALERTS_KEY, JSON.stringify(alerts));
+  } catch (error) {
+    console.error('Error saving admin alert:', error);
+  }
+};
+
+export const clearAdminAlerts = (): void => {
+  try {
+    localStorage.removeItem(ADMIN_ALERTS_KEY);
+  } catch (error) {
+    console.error('Error clearing admin alerts:', error);
+  }
+};

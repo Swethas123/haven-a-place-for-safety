@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Eye, CheckCircle, Map, ShieldAlert, MapPin, LogOut } from 'lucide-react';
+import { ArrowLeft, Eye, CheckCircle, Map, ShieldAlert, MapPin, LogOut, Bell, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { getCases, updateCaseStatus, clearAdminSession } from '../utils/storage';
+import { getCases, updateCaseStatus, clearAdminSession, getAdminAlerts } from '../utils/storage';
 import { SOSCase } from '../types';
 import { useTranslation } from '../utils/i18n';
 import { AuthorityNetworkIllustration } from '../components/Illustrations';
@@ -17,6 +17,7 @@ export function AuthorityDashboardPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [cases, setCases] = useState<SOSCase[]>([]);
+  const [alerts, setAlerts] = useState<any[]>([]);
   const [stats, setStats] = useState({
     total: 0,
     open: 0,
@@ -27,6 +28,27 @@ export function AuthorityDashboardPage() {
 
   useEffect(() => {
     loadCases();
+    loadAlerts();
+
+    // Real-time alert listener via SSE
+    const eventSource = new EventSource('http://localhost:3001/admin-alert-stream');
+    
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type !== 'connected') {
+        console.log('New alert received:', data);
+        loadAlerts(); // Reload alerts when new one arrives
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+    };
+
+    // Cleanup on unmount
+    return () => {
+      eventSource.close();
+    };
   }, []);
 
   const loadCases = () => {
@@ -40,6 +62,11 @@ export function AuthorityDashboardPage() {
       closed: allCases.filter(c => c.status === 'Closed').length,
       high: allCases.filter(c => c.severity === 'High').length,
     });
+  };
+
+  const loadAlerts = () => {
+    const adminAlerts = getAdminAlerts();
+    setAlerts(adminAlerts);
   };
 
   const handleViewDetails = (caseId: string) => {
@@ -156,6 +183,100 @@ export function AuthorityDashboardPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Real-time Alerts Section */}
+            {alerts.length > 0 && (
+              <Card className="border-2 border-purple-200 mb-6 overflow-hidden">
+                <CardHeader className="bg-purple-50/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-5 h-5 text-purple-600" />
+                      <CardTitle className="text-xl text-purple-900">Live Alerts</CardTitle>
+                    </div>
+                    <Badge className="bg-purple-600">{alerts.length} New</Badge>
+                  </div>
+                  <CardDescription>Real-time notifications from n8n webhook</CardDescription>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                    {alerts.map((alert) => (
+                      <div
+                        key={alert.id}
+                        className={`p-4 rounded-lg border-l-4 ${
+                          alert.severity === 'High'
+                            ? 'bg-red-50 border-red-600'
+                            : alert.severity === 'Medium'
+                            ? 'bg-yellow-50 border-yellow-600'
+                            : 'bg-green-50 border-green-600'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle
+                              className={`w-5 h-5 ${
+                                alert.severity === 'High'
+                                  ? 'text-red-600'
+                                  : alert.severity === 'Medium'
+                                  ? 'text-yellow-600'
+                                  : 'text-green-600'
+                              }`}
+                            />
+                            <Badge
+                              className={
+                                alert.severity === 'High'
+                                  ? 'bg-red-600'
+                                  : alert.severity === 'Medium'
+                                  ? 'bg-yellow-600'
+                                  : 'bg-green-600'
+                              }
+                            >
+                              {alert.severity}
+                            </Badge>
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {new Date(alert.time).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="font-semibold text-gray-900 mb-1">{alert.alert}</p>
+                        <p className="text-sm text-gray-600 mb-2">
+                          <span className="font-medium">Emotion:</span> {alert.emotion}
+                        </p>
+                        {alert.response && (
+                          <div className="mb-2">
+                            <Badge 
+                              variant="outline"
+                              className={`text-xs ${
+                                alert.response.toLowerCase().includes('critical')
+                                  ? 'border-red-600 text-red-700 bg-red-50'
+                                  : alert.response.toLowerCase().includes('attention')
+                                  ? 'border-orange-600 text-orange-700 bg-orange-50'
+                                  : alert.response.toLowerCase().includes('support')
+                                  ? 'border-blue-600 text-blue-700 bg-blue-50'
+                                  : 'border-gray-600 text-gray-700 bg-gray-50'
+                              }`}
+                            >
+                              AI Action: {
+                                alert.response.toLowerCase().includes('critical')
+                                  ? '🚨 Police Dispatch'
+                                  : alert.response.toLowerCase().includes('attention')
+                                  ? '⚠️ NGO Monitoring'
+                                  : alert.response.toLowerCase().includes('support')
+                                  ? '💬 Counselor Support'
+                                  : '⏳ Pending Review'
+                              }
+                            </Badge>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <MapPin className="w-3 h-3" />
+                          <span>{alert.address}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Cases Table with Tabs */}
             <Card className="border-2 border-blue-100 overflow-hidden">

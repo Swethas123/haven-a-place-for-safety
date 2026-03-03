@@ -43,3 +43,17 @@ export interface ChatMessage {
   timestamp: number;
   riskLevel?: 'Low' | 'Medium' | 'High';
 }
+
+export interface AdminAlert {
+  id: string;
+  severity: 'Low' | 'Medium' | 'High';
+  emotion: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  address: string;
+  alert: string;
+  time: string;
+  response?: string; // AI response from n8n
+}
