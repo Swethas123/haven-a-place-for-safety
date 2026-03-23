@@ -1,23 +1,30 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Shield, Phone, Lock, ArrowLeft, Loader2, CheckCircle2, Heart, User } from 'lucide-react';
+import { Shield, Phone, Lock, ArrowLeft, Loader2, CheckCircle2, Heart, User, Mail } from 'lucide-react';
 import { EmpowermentIllustration } from '../components/Illustrations';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { toast } from 'sonner';
 import { useTranslation } from '../utils/i18n';
-import { setVictimAuthenticated } from '../utils/storage';
+import { setVictimAuthenticated, saveUserProfile, getUserProfile } from '../utils/storage';
 
 export function VictimLoginPage() {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const [step, setStep] = useState<'mobile' | 'otp'>('mobile');
+    const [step, setStep] = useState<'mobile' | 'otp' | 'profile'>('mobile');
     const [mobile, setMobile] = useState('');
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
     const [generatedOtp, setGeneratedOtp] = useState('');
+    const [isNewUser, setIsNewUser] = useState(false);
+    
+    // Profile fields
+    const [name, setName] = useState('');
+    const [contactMode, setContactMode] = useState<'SMS' | 'WhatsApp' | 'Email'>('SMS');
+    const [email, setEmail] = useState('');
 
     const handleSendOtp = (e: React.FormEvent) => {
         e.preventDefault();
@@ -48,8 +55,45 @@ export function VictimLoginPage() {
 
         setLoading(true);
         setTimeout(() => {
+            // Check if user profile exists
+            const existingProfile = getUserProfile();
+            if (existingProfile && existingProfile.phone === mobile) {
+                // Existing user - login directly
+                setVictimAuthenticated(mobile);
+                toast.success(t('login_success_toast'));
+                setLoading(false);
+                navigate('/victim');
+            } else {
+                // New user - show profile creation
+                setIsNewUser(true);
+                setStep('profile');
+                setLoading(false);
+                toast.info('Please complete your profile');
+            }
+        }, 1000);
+    };
+
+    const handleProfileSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        // Validate email if Email contact mode is selected
+        if (contactMode === 'Email' && !email) {
+            toast.error('Email is required when Email contact mode is selected');
+            return;
+        }
+
+        setLoading(true);
+        setTimeout(() => {
+            // Save user profile
+            saveUserProfile({
+                name,
+                phone: mobile,
+                contactMode,
+                email: contactMode === 'Email' ? email : undefined,
+            });
+
             setVictimAuthenticated(mobile);
-            toast.success(t('login_success_toast'));
+            toast.success('Profile created successfully!');
             setLoading(false);
             navigate('/victim');
         }, 1000);
@@ -155,7 +199,7 @@ export function VictimLoginPage() {
                                         )}
                                     </Button>
                                 </form>
-                            ) : (
+                            ) : step === 'otp' ? (
                                 <form onSubmit={handleVerifyOtp} className="space-y-6">
                                     <div className="space-y-2">
                                         <Label htmlFor="otp" className="text-gray-700 font-semibold px-1">
@@ -199,6 +243,79 @@ export function VictimLoginPage() {
                                             {t('login_resend_otp')}
                                         </Button>
                                     </div>
+                                </form>
+                            ) : (
+                                <form onSubmit={handleProfileSubmit} className="space-y-6">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="name" className="text-gray-700 font-semibold px-1">
+                                            Your Name
+                                        </Label>
+                                        <div className="relative">
+                                            <User className="absolute left-3 top-3 w-5 h-5 text-purple-400" />
+                                            <Input
+                                                id="name"
+                                                type="text"
+                                                placeholder="Enter your name"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                className="pl-10 h-12 rounded-xl border-gray-200 focus:ring-purple-500"
+                                                required
+                                                autoFocus
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-gray-700 font-semibold px-1">
+                                            Preferred Contact Mode
+                                        </Label>
+                                        <RadioGroup value={contactMode} onValueChange={(value: any) => setContactMode(value)}>
+                                            <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-purple-50 transition-colors">
+                                                <RadioGroupItem value="SMS" id="sms" />
+                                                <Label htmlFor="sms" className="flex-1 cursor-pointer">SMS</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-purple-50 transition-colors">
+                                                <RadioGroupItem value="WhatsApp" id="whatsapp" />
+                                                <Label htmlFor="whatsapp" className="flex-1 cursor-pointer">WhatsApp</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 p-3 rounded-lg border hover:bg-purple-50 transition-colors">
+                                                <RadioGroupItem value="Email" id="email-mode" />
+                                                <Label htmlFor="email-mode" className="flex-1 cursor-pointer">Email</Label>
+                                            </div>
+                                        </RadioGroup>
+                                    </div>
+
+                                    {contactMode === 'Email' && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="email" className="text-gray-700 font-semibold px-1">
+                                                Email Address
+                                            </Label>
+                                            <div className="relative">
+                                                <Mail className="absolute left-3 top-3 w-5 h-5 text-purple-400" />
+                                                <Input
+                                                    id="email"
+                                                    type="email"
+                                                    placeholder="Enter your email"
+                                                    value={email}
+                                                    onChange={(e) => setEmail(e.target.value)}
+                                                    className="pl-10 h-12 rounded-xl border-gray-200 focus:ring-purple-500"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <Button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="w-full h-14 bg-purple-600 hover:bg-purple-700 rounded-xl text-lg font-bold shadow-lg shadow-purple-200 transition-all hover:scale-[1.02] active:scale-95"
+                                    >
+                                        {loading ? (
+                                            <Loader2 className="w-6 h-6 animate-spin" />
+                                        ) : (
+                                            'Complete Profile'
+                                        )}
+                                    </Button>
                                 </form>
                             )}
 

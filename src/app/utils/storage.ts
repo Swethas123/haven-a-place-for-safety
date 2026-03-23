@@ -8,6 +8,7 @@ const ADMIN_KEY = 'haven_admin_account';
 const ADMIN_LOGGED_IN_KEY = 'haven_admin_logged_in';
 const VICTIM_AUTH_KEY = 'haven_victim_authenticated';
 const VICTIM_PHONE_KEY = 'haven_victim_phone';
+const USER_PROFILE_KEY = 'userProfile';
 
 export const getCases = (pinFilter?: string): SOSCase[] => {
   try {
@@ -55,6 +56,26 @@ export const updateCaseStatus = (id: string, status: SOSCase['status']): void =>
       timestamp: Date.now(),
     });
     saveCase(sosCase);
+  }
+};
+
+export const deleteCase = (id: string): void => {
+  try {
+    const cases = getCases();
+    const filteredCases = cases.filter(c => c.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredCases));
+  } catch (error) {
+    console.error('Error deleting case:', error);
+  }
+};
+
+export const deleteAdminAlert = (id: string): void => {
+  try {
+    const alerts = getAdminAlerts();
+    const filteredAlerts = alerts.filter(a => a.id !== id);
+    localStorage.setItem(ADMIN_ALERTS_KEY, JSON.stringify(filteredAlerts));
+  } catch (error) {
+    console.error('Error deleting admin alert:', error);
   }
 };
 
@@ -148,5 +169,39 @@ export const clearAdminAlerts = (): void => {
     localStorage.removeItem(ADMIN_ALERTS_KEY);
   } catch (error) {
     console.error('Error clearing admin alerts:', error);
+  }
+};
+
+// User Profile Management
+export interface UserProfile {
+  name: string;
+  phone: string;
+  contactMode: 'SMS' | 'WhatsApp' | 'Email';
+  email?: string;
+}
+
+export const getUserProfile = (): UserProfile | null => {
+  try {
+    const data = localStorage.getItem(USER_PROFILE_KEY);
+    return data ? JSON.parse(data) : null;
+  } catch (error) {
+    console.error('Error reading user profile:', error);
+    return null;
+  }
+};
+
+export const saveUserProfile = (profile: UserProfile): void => {
+  try {
+    localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(profile));
+  } catch (error) {
+    console.error('Error saving user profile:', error);
+  }
+};
+
+export const clearUserProfile = (): void => {
+  try {
+    localStorage.removeItem(USER_PROFILE_KEY);
+  } catch (error) {
+    console.error('Error clearing user profile:', error);
   }
 };

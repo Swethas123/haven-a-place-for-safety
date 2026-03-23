@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Eye, CheckCircle, Map, ShieldAlert, MapPin, LogOut, Bell, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Eye, Map, ShieldAlert, MapPin, LogOut, Bell, AlertTriangle, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { getCases, updateCaseStatus, clearAdminSession, getAdminAlerts } from '../utils/storage';
+import { getCases, deleteCase, clearAdminSession, getAdminAlerts, deleteAdminAlert } from '../utils/storage';
 import { SOSCase } from '../types';
 import { useTranslation } from '../utils/i18n';
 import { AuthorityNetworkIllustration } from '../components/Illustrations';
@@ -22,7 +21,6 @@ export function AuthorityDashboardPage() {
     total: 0,
     open: 0,
     inProgress: 0,
-    closed: 0,
     high: 0,
   });
 
@@ -59,7 +57,6 @@ export function AuthorityDashboardPage() {
       total: allCases.length,
       open: allCases.filter(c => c.status === 'Open').length,
       inProgress: allCases.filter(c => c.status === 'In Progress').length,
-      closed: allCases.filter(c => c.status === 'Closed').length,
       high: allCases.filter(c => c.severity === 'High').length,
     });
   };
@@ -73,10 +70,16 @@ export function AuthorityDashboardPage() {
     navigate(`/case-detail/${caseId}`);
   };
 
-  const handleCloseCase = (caseId: string) => {
-    updateCaseStatus(caseId, 'Closed');
+  const handleDeleteCase = (caseId: string) => {
+    deleteCase(caseId);
     loadCases();
   };
+
+  const handleDeleteAlert = (alertId: string) => {
+    deleteAdminAlert(alertId);
+    loadAlerts();
+  };
+
   const handleLogout = () => {
     clearAdminSession();
     navigate('/');
@@ -137,7 +140,7 @@ export function AuthorityDashboardPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid md:grid-cols-5 gap-4 mb-8">
+            <div className="grid md:grid-cols-4 gap-4 mb-8">
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-gray-600">{t('auth_total_cases')}</CardTitle>
@@ -162,15 +165,6 @@ export function AuthorityDashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-3xl font-bold text-yellow-600">{stats.inProgress}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-gray-600">{t('auth_closed')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-green-600">{stats.closed}</p>
                 </CardContent>
               </Card>
 
@@ -202,7 +196,7 @@ export function AuthorityDashboardPage() {
                     {alerts.map((alert) => (
                       <div
                         key={alert.id}
-                        className={`p-4 rounded-lg border-l-4 ${
+                        className={`p-4 rounded-lg border-l-4 relative ${
                           alert.severity === 'High'
                             ? 'bg-red-50 border-red-600'
                             : alert.severity === 'Medium'
@@ -210,7 +204,15 @@ export function AuthorityDashboardPage() {
                             : 'bg-green-50 border-green-600'
                         }`}
                       >
-                        <div className="flex items-start justify-between mb-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteAlert(alert.id)}
+                          className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                        <div className="flex items-start justify-between mb-2 pr-8">
                           <div className="flex items-center gap-2">
                             <AlertTriangle
                               className={`w-5 h-5 ${
@@ -278,63 +280,30 @@ export function AuthorityDashboardPage() {
               </Card>
             )}
 
-            {/* Cases Table with Tabs */}
+            {/* Active Cases Table */}
             <Card className="border-2 border-blue-100 overflow-hidden">
-              <Tabs defaultValue="active" className="w-full">
-                <CardHeader className="bg-blue-50/50 pb-0 pt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <CardTitle className="text-2xl text-blue-900">{t('auth_case_mgmt')}</CardTitle>
-                      <CardDescription>{t('auth_track_desc')}</CardDescription>
-                    </div>
-                    <TabsList className="bg-blue-100/50">
-                      <TabsTrigger value="active" className="data-[state=active]:bg-white">{t('auth_active_sos')}</TabsTrigger>
-                      <TabsTrigger value="closed" className="data-[state=active]:bg-white">{t('auth_resolved_archives')}</TabsTrigger>
-                    </TabsList>
+              <CardHeader className="bg-blue-50/50">
+                <CardTitle className="text-2xl text-blue-900">{t('auth_case_mgmt')}</CardTitle>
+                <CardDescription>{t('auth_track_desc')}</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                {cases.length === 0 ? (
+                  <div className="text-center py-20 bg-white">
+                    <ShieldAlert className="w-16 h-16 text-blue-200 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900">{t('auth_no_active')}</h3>
+                    <p className="text-sm text-gray-500 max-w-xs mx-auto mt-1">
+                      {t('auth_no_active_desc')}
+                    </p>
                   </div>
-                </CardHeader>
-
-                <TabsContent value="active" className="m-0">
-                  <CardContent className="p-0">
-                    {cases.filter(c => c.status !== 'Closed').length === 0 ? (
-                      <div className="text-center py-20 bg-white">
-                        <ShieldAlert className="w-16 h-16 text-blue-200 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-900">{t('auth_no_active')}</h3>
-                        <p className="text-sm text-gray-500 max-w-xs mx-auto mt-1">
-                          {t('auth_no_active_desc')}
-                        </p>
-                      </div>
-                    ) : (
-                      <CaseTable
-                        cases={cases.filter(c => c.status !== 'Closed')}
-                        onView={handleViewDetails}
-                        onClose={handleCloseCase}
-                        t={t}
-                      />
-                    )}
-                  </CardContent>
-                </TabsContent>
-
-                <TabsContent value="closed" className="m-0">
-                  <CardContent className="p-0">
-                    {cases.filter(c => c.status === 'Closed').length === 0 ? (
-                      <div className="text-center py-20 bg-white">
-                        <CheckCircle className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-gray-900">{t('auth_archive_empty')}</h3>
-                        <p className="text-sm text-gray-400 max-w-xs mx-auto mt-1">
-                          {t('auth_archive_desc')}
-                        </p>
-                      </div>
-                    ) : (
-                      <CaseTable
-                        cases={cases.filter(c => c.status === 'Closed')}
-                        onView={handleViewDetails}
-                        t={t}
-                      />
-                    )}
-                  </CardContent>
-                </TabsContent>
-              </Tabs>
+                ) : (
+                  <CaseTable
+                    cases={cases}
+                    onView={handleViewDetails}
+                    onDelete={handleDeleteCase}
+                    t={t}
+                  />
+                )}
+              </CardContent>
             </Card>
           </div>
         </div>
@@ -347,12 +316,12 @@ export function AuthorityDashboardPage() {
 function CaseTable({
   cases,
   onView,
-  onClose,
+  onDelete,
   t
 }: {
   cases: SOSCase[],
   onView: (id: string) => void,
-  onClose?: (id: string) => void,
+  onDelete: (id: string) => void,
   t: any
 }) {
   return (
@@ -393,9 +362,8 @@ function CaseTable({
               </TableCell>
               <TableCell>
                 <Badge variant="outline" className={
-                  sosCase.status === 'Closed' ? 'border-green-600 text-green-600 bg-green-50' :
-                    sosCase.status === 'In Progress' ? 'border-yellow-600 text-yellow-600 bg-yellow-50' :
-                      'border-orange-600 text-orange-600 bg-orange-50'
+                  sosCase.status === 'In Progress' ? 'border-yellow-600 text-yellow-600 bg-yellow-50' :
+                    'border-orange-600 text-orange-600 bg-orange-50'
                 }>
                   {sosCase.status}
                 </Badge>
@@ -414,17 +382,15 @@ function CaseTable({
                     <Eye className="w-3 h-3 mr-1" />
                     {t('auth_details')}
                   </Button>
-                  {onClose && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onClose(sosCase.id)}
-                      className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50"
-                    >
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      {t('auth_resolve')}
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onDelete(sosCase.id)}
+                    className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" />
+                    Delete
+                  </Button>
                 </div>
               </TableCell>
             </TableRow>

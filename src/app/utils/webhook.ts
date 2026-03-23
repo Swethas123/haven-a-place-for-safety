@@ -3,13 +3,13 @@
 const N8N_WEBHOOK_URL = 'http://localhost:5678/webhook-test/sos-alert';
 
 export interface SOSWebhookPayload {
-  severity: 'Low' | 'Medium' | 'High';
+  emotionType: 'Low' | 'Medium' | 'High';
+  emotion: string;
   location: {
     lat: number;
     lng: number;
     address: string;
   };
-  emotion: string;
 }
 
 export const sendSOSToWebhook = async (payload: SOSWebhookPayload): Promise<void> => {

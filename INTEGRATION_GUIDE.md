@@ -90,14 +90,14 @@ return {
 - **Body**:
 ```json
 {
-  "severity": "={{ $json.severity }}",
-  "emotion": "={{ $json.emotion }}",
+  "severity": "={{ $json.body.severity }}",
+  "emotion": "={{ $json.body.emotion }}",
   "location": {
-    "lat": ={{ $json.location.lat }},
-    "lng": ={{ $json.location.lng }}
+    "lat": "={{ $json.body.location.lat }}",
+    "lng": "={{ $json.body.location.lng }}"
   },
-  "address": "={{ $json.address }}",
-  "alert": "={{ $json.alert }}",
+  "address": "={{ $json.body.address }}",
+  "alert": "={{ $json.body.alert }}",
   "response": "={{ $json.response }}"
 }
 ```

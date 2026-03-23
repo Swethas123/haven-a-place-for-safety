@@ -3,12 +3,10 @@ import { useNavigate } from 'react-router';
 import { ArrowLeft, MapPin, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { generateSOSNarrative, decomposeSOSData } from '../utils/ai';
-import { saveCase, getSessionPin } from '../utils/storage';
+import { saveCase, getSessionPin, getUserProfile } from '../utils/storage';
 import { sendSOSToWebhook } from '../utils/webhook';
 import { SOSCase } from '../types';
 import { toast } from 'sonner';
@@ -19,15 +17,11 @@ export function CreatePostPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    preferredContact: '',
-    durationOfAbuse: '',
-    frequency: '',
-    currentSituation: '',
-    culpritDescription: '',
+    severity: '',
+    additionalDetails: '',
     imageUrl: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=500&q=80', // Default nature
   });
 
@@ -39,36 +33,82 @@ export function CreatePostPage() {
   ];
 
   useEffect(() => {
-    // Auto-detect location
+    // Load user profile
+    const profile = getUserProfile();
+    if (!profile) {
+      toast.error('Please complete your profile first');
+      navigate('/victim-login');
+      return;
+    }
+    setUserProfile(profile);
+
+    // Reverse geocoding function
+    const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+      try {
+        // Using OpenStreetMap Nominatim API for reverse geocoding
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`
+        );
+        const data = await response.json();
+        
+        // Extract city and state/country
+        const city = data.address?.city || data.address?.town || data.address?.village || '';
+        const state = data.address?.state || '';
+        const country = data.address?.country || '';
+        
+        if (city && state) {
+          return `${city}, ${state}`;
+        } else if (city && country) {
+          return `${city}, ${country}`;
+        } else if (state && country) {
+          return `${state}, ${country}`;
+        } else {
+          return data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        }
+      } catch (error) {
+        console.error('Reverse geocoding error:', error);
+        return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+    };
+
+    // Auto-detect location with reverse geocoding
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
           const { latitude, longitude } = position.coords;
+          const address = await reverseGeocode(latitude, longitude);
           setLocation({
             lat: latitude,
             lng: longitude,
-            address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+            address: address,
           });
           toast.success(t('create_post_loc_success'));
         },
-        () => {
+        async () => {
           // Default location if geolocation fails
+          const defaultLat = 28.6139;
+          const defaultLng = 77.2090;
+          const address = await reverseGeocode(defaultLat, defaultLng);
           setLocation({
-            lat: 28.6139,
-            lng: 77.2090,
-            address: 'New Delhi, India',
+            lat: defaultLat,
+            lng: defaultLng,
+            address: address,
           });
           toast.info(t('create_post_loc_default'));
         }
       );
     } else {
-      setLocation({
-        lat: 28.6139,
-        lng: 77.2090,
-        address: 'New Delhi, India',
+      const defaultLat = 28.6139;
+      const defaultLng = 77.2090;
+      reverseGeocode(defaultLat, defaultLng).then(address => {
+        setLocation({
+          lat: defaultLat,
+          lng: defaultLng,
+          address: address,
+        });
       });
     }
-  }, []);
+  }, [navigate, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,28 +118,40 @@ export function CreatePostPage() {
       return;
     }
 
+    if (!formData.severity) {
+      toast.error('Please select severity level');
+      return;
+    }
+
+    if (!userProfile) {
+      toast.error('User profile not found');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Step 1: Generate SOS narrative using AI
-      const sosMessage = await generateSOSNarrative(formData);
-
-      // Step 2: Decompose to extract severity, nature, risk level
-      const { severity, nature, riskLevel } = await decomposeSOSData(sosMessage, formData);
-
-      // Step 3: Create case object
+      // Create case object with simplified data
       const newCase: SOSCase = {
         id: Date.now().toString(),
         pin: getSessionPin() || undefined,
-        ...formData,
-        imageUrl: formData.imageUrl, // Explicitly set to ensure it's saved correctly
+        name: userProfile.name,
+        phone: userProfile.phone,
+        preferredContact: userProfile.contactMode,
         location,
-        sosMessage,
-        severity,
-        nature,
-        riskLevel,
+        imageUrl: formData.imageUrl,
+        sosMessage: formData.additionalDetails || 'SOS Alert',
+        severity: formData.severity as 'Low' | 'Medium' | 'High',
+        nature: formData.additionalDetails || 'Emergency',
+        riskLevel: formData.severity === 'High' ? 'Critical - Immediate intervention needed' :
+                   formData.severity === 'Medium' ? 'Moderate - Regular monitoring required' :
+                   'Low - Supportive assistance recommended',
         status: 'Open',
         timestamp: Date.now(),
+        durationOfAbuse: 'Not specified',
+        frequency: 'Not specified',
+        currentSituation: formData.additionalDetails || 'Emergency situation',
+        culpritDescription: 'Not specified',
         timeline: [
           {
             id: '1',
@@ -109,14 +161,14 @@ export function CreatePostPage() {
         ],
       };
 
-      // Step 4: Save to localStorage
+      // Save to localStorage
       saveCase(newCase);
 
-      // Step 5: Send SOS alert to n8n webhook (non-blocking)
+      // Send SOS alert to n8n webhook (non-blocking)
       sendSOSToWebhook({
-        severity: newCase.severity,
+        emotionType: newCase.severity,
+        emotion: formData.additionalDetails || newCase.nature,
         location: newCase.location,
-        emotion: newCase.nature, // Using nature as emotion indicator
       });
 
       toast.success(t('create_post_gen_success'));
@@ -150,126 +202,56 @@ export function CreatePostPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Personal Information */}
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name">{t('create_post_your_name')}</Label>
-                  <Input
-                    id="name"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder={t('create_post_name_placeholder')}
-                  />
+              {/* User Info Display (Read-only) */}
+              {userProfile && (
+                <div className="space-y-2 p-4 bg-purple-50 rounded-lg border border-purple-100">
+                  <p className="text-sm font-semibold text-purple-900">Your Profile</p>
+                  <p className="text-sm text-gray-700">Name: {userProfile.name}</p>
+                  <p className="text-sm text-gray-700">Phone: {userProfile.phone}</p>
+                  <p className="text-sm text-gray-700">Contact Mode: {userProfile.contactMode}</p>
                 </div>
+              )}
 
-                <div>
-                  <Label htmlFor="phone">{t('create_post_phone')}</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+91 XXXXXXXXXX"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="preferredContact">{t('create_post_pref_contact')}</Label>
-                  <Select
-                    required
-                    value={formData.preferredContact}
-                    onValueChange={(value) => setFormData({ ...formData, preferredContact: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('create_post_select_contact')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Phone">{t('contact_phone')}</SelectItem>
-                      <SelectItem value="Email">{t('contact_email')}</SelectItem>
-                      <SelectItem value="WhatsApp">{t('contact_whatsapp')}</SelectItem>
-                      <SelectItem value="SMS">{t('contact_sms')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Location Display */}
-                <div>
-                  <Label>{t('create_post_location') || t('dash_location')}</Label>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-md border">
-                    <MapPin className="w-4 h-4 text-green-600" />
-                    <span className="text-sm">
-                      {location ? location.address : t('create_post_detecting_loc')}
-                    </span>
-                  </div>
+              {/* Location Display */}
+              <div>
+                <Label>{t('create_post_location') || t('dash_location')}</Label>
+                <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-md border">
+                  <MapPin className="w-4 h-4 text-green-600" />
+                  <span className="text-sm">
+                    {location ? location.address : t('create_post_detecting_loc')}
+                  </span>
                 </div>
               </div>
 
-              {/* Abuse Details */}
+              {/* Severity Selection */}
               <div className="space-y-4 pt-4 border-t">
-                <Label className="text-lg font-bold">{t('create_post_abuse_details')}</Label>
+                <Label className="text-lg font-bold">Severity Level</Label>
                 <div>
-                  <Label htmlFor="durationOfAbuse">{t('create_post_duration')}</Label>
+                  <Label htmlFor="severity">Select Severity *</Label>
                   <Select
                     required
-                    value={formData.durationOfAbuse}
-                    onValueChange={(value) => setFormData({ ...formData, durationOfAbuse: value })}
+                    value={formData.severity}
+                    onValueChange={(value) => setFormData({ ...formData, severity: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={t('create_post_select_duration')} />
+                      <SelectValue placeholder="Select severity level" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Less than 1 month">{t('dur_less_1m')}</SelectItem>
-                      <SelectItem value="1-6 months">{t('dur_1_6m')}</SelectItem>
-                      <SelectItem value="6 months - 1 year">{t('dur_6m_1y')}</SelectItem>
-                      <SelectItem value="1-3 years">{t('dur_1_3y')}</SelectItem>
-                      <SelectItem value="More than 3 years">{t('dur_more_3y')}</SelectItem>
+                      <SelectItem value="High">High</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Low">Low</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label htmlFor="frequency">{t('create_post_freq')}</Label>
-                  <Select
-                    required
-                    value={formData.frequency}
-                    onValueChange={(value) => setFormData({ ...formData, frequency: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('create_post_select_freq')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Daily">{t('freq_daily')}</SelectItem>
-                      <SelectItem value="Multiple times a week">{t('freq_multiple')}</SelectItem>
-                      <SelectItem value="Weekly">{t('freq_weekly')}</SelectItem>
-                      <SelectItem value="Monthly">{t('freq_monthly')}</SelectItem>
-                      <SelectItem value="Occasionally">{t('freq_occasionally')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="currentSituation">{t('create_post_curr_sit')}</Label>
+                  <Label htmlFor="additionalDetails">Additional details (optional)</Label>
                   <Textarea
-                    id="currentSituation"
-                    required
-                    value={formData.currentSituation}
-                    onChange={(e) => setFormData({ ...formData, currentSituation: e.target.value })}
-                    placeholder={t('create_post_sit_placeholder')}
+                    id="additionalDetails"
+                    value={formData.additionalDetails}
+                    onChange={(e) => setFormData({ ...formData, additionalDetails: e.target.value })}
+                    placeholder="Add any additional information..."
                     rows={4}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="culpritDescription">{t('create_post_culprit')}</Label>
-                  <Textarea
-                    id="culpritDescription"
-                    required
-                    value={formData.culpritDescription}
-                    onChange={(e) => setFormData({ ...formData, culpritDescription: e.target.value })}
-                    placeholder={t('create_post_culprit_placeholder')}
-                    rows={3}
                   />
                 </div>
               </div>

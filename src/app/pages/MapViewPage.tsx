@@ -11,6 +11,58 @@ import { useTranslation } from '../utils/i18n';
 
 import { AdminGuard } from '../components/AdminGuard';
 
+// Helper function to get severity color
+function getSeverityColor(severity: string): string {
+  if (severity === 'High') return 'red';
+  if (severity === 'Medium') return 'yellow';
+  if (severity === 'Low') return 'green';
+  return 'gray';
+}
+
+// Helper function to get Tailwind CSS classes for severity
+function getSeverityClasses(severity: string): {
+  bg: string;
+  border: string;
+  text: string;
+  bgLight: string;
+  borderLight: string;
+} {
+  if (severity === 'High') {
+    return {
+      bg: 'bg-red-600',
+      border: 'border-t-red-600',
+      text: 'text-red-600',
+      bgLight: 'bg-red-50',
+      borderLight: 'border-red-100',
+    };
+  }
+  if (severity === 'Medium') {
+    return {
+      bg: 'bg-yellow-500',
+      border: 'border-t-yellow-500',
+      text: 'text-yellow-600',
+      bgLight: 'bg-yellow-50',
+      borderLight: 'border-yellow-100',
+    };
+  }
+  if (severity === 'Low') {
+    return {
+      bg: 'bg-green-500',
+      border: 'border-t-green-500',
+      text: 'text-green-600',
+      bgLight: 'bg-green-50',
+      borderLight: 'border-green-100',
+    };
+  }
+  return {
+    bg: 'bg-gray-500',
+    border: 'border-t-gray-500',
+    text: 'text-gray-600',
+    bgLight: 'bg-gray-50',
+    borderLight: 'border-gray-100',
+  };
+}
+
 export function MapViewPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -133,6 +185,8 @@ export function MapViewPage() {
                             {cases.map((sosCase) => {
                               const pos = getMarkerPos(sosCase.location.lat, sosCase.location.lng);
                               const isActive = selectedCase?.id === sosCase.id;
+                              const severityClasses = getSeverityClasses(sosCase.severity);
+                              
                               return (
                                 <div
                                   key={sosCase.id}
@@ -144,19 +198,13 @@ export function MapViewPage() {
                                   }}
                                 >
                                   <div className={`relative group pointer-events-auto cursor-pointer`} onClick={() => setSelectedCase(sosCase)}>
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-white animate-bounce-subtle ${sosCase.severity === 'High' ? 'bg-red-600' :
-                                      sosCase.severity === 'Medium' ? 'bg-yellow-500' :
-                                        'bg-green-500'
-                                      } ${isActive ? 'scale-125 ring-4 ring-white ring-opacity-50 z-50' : 'z-10'}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-white animate-bounce-subtle ${severityClasses.bg} ${isActive ? 'scale-125 ring-4 ring-white ring-opacity-50 z-50' : 'z-10'}`}>
                                       <MapPin className="w-4 h-4 text-white" />
                                     </div>
                                     <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black/80 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-[100]`}>
                                       {sosCase.name} ({sosCase.severity})
                                     </div>
-                                    <div className={`absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] ${sosCase.severity === 'High' ? 'border-t-red-600' :
-                                      sosCase.severity === 'Medium' ? 'border-t-yellow-500' :
-                                        'border-t-green-500'
-                                      }`}></div>
+                                    <div className={`absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] ${severityClasses.border}`}></div>
                                   </div>
                                 </div>
                               );
@@ -171,17 +219,17 @@ export function MapViewPage() {
                             {t('map_activity_summary')} {cases.length} {t('map_reports')}
                           </p>
                           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                            <div className="flex items-center gap-2 p-2 bg-red-50 rounded-lg border border-red-100">
-                              <span className="w-3 h-3 bg-red-600 rounded-full"></span>
-                              <span className="font-semibold text-red-700"> {t('auth_open')}: {cases.filter(c => c.severity === 'High').length}</span>
+                            <div className={`flex items-center gap-2 p-2 rounded-lg border ${getSeverityClasses('High').bgLight} ${getSeverityClasses('High').borderLight}`}>
+                              <span className={`w-3 h-3 rounded-full ${getSeverityClasses('High').bg}`}></span>
+                              <span className={`font-semibold ${getSeverityClasses('High').text}`}> {t('auth_open')}: {cases.filter(c => c.severity === 'High').length}</span>
                             </div>
-                            <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg border border-yellow-100">
-                              <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
-                              <span className="font-semibold text-yellow-700">{t('auth_in_progress')}: {cases.filter(c => c.severity === 'Medium').length}</span>
+                            <div className={`flex items-center gap-2 p-2 rounded-lg border ${getSeverityClasses('Medium').bgLight} ${getSeverityClasses('Medium').borderLight}`}>
+                              <span className={`w-3 h-3 rounded-full ${getSeverityClasses('Medium').bg}`}></span>
+                              <span className={`font-semibold ${getSeverityClasses('Medium').text}`}>{t('auth_in_progress')}: {cases.filter(c => c.severity === 'Medium').length}</span>
                             </div>
-                            <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-100">
-                              <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                              <span className="font-semibold text-green-700">{t('auth_closed')}: {cases.filter(c => c.severity === 'Low').length}</span>
+                            <div className={`flex items-center gap-2 p-2 rounded-lg border ${getSeverityClasses('Low').bgLight} ${getSeverityClasses('Low').borderLight}`}>
+                              <span className={`w-3 h-3 rounded-full ${getSeverityClasses('Low').bg}`}></span>
+                              <span className={`font-semibold ${getSeverityClasses('Low').text}`}>{t('auth_closed')}: {cases.filter(c => c.severity === 'Low').length}</span>
                             </div>
                             <div className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg border border-purple-100">
                               <span className="w-3 h-3 bg-purple-600 rounded-full"></span>
@@ -210,6 +258,7 @@ export function MapViewPage() {
                         {cases.map((sosCase) => {
                           const locationKey = `${sosCase.location.lat.toFixed(3)},${sosCase.location.lng.toFixed(3)}`;
                           const isRepeat = locationCounts[locationKey] > 1;
+                          const severityClasses = getSeverityClasses(sosCase.severity);
 
                           return (
                             <div
@@ -222,10 +271,7 @@ export function MapViewPage() {
                             >
                               <div className="flex items-start justify-between mb-2">
                                 <p className="font-bold text-gray-900">{sosCase.name}</p>
-                                <Badge className={`px-2 py-0.5 rounded-full ${sosCase.severity === 'High' ? 'bg-red-600 hover:bg-red-700' :
-                                  sosCase.severity === 'Medium' ? 'bg-yellow-500 hover:bg-yellow-600' :
-                                    'bg-green-500 hover:bg-green-600'
-                                  }`}>
+                                <Badge className={`px-2 py-0.5 rounded-full ${severityClasses.bg} hover:${severityClasses.bg}`}>
                                   {sosCase.severity}
                                 </Badge>
                               </div>
@@ -266,10 +312,7 @@ export function MapViewPage() {
                         </div>
                         <div className="bg-gray-50 p-3 rounded-xl">
                           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{t('auth_severity')}</p>
-                          <p className={`font-bold ${selectedCase.severity === 'High' ? 'text-red-600' :
-                            selectedCase.severity === 'Medium' ? 'text-yellow-600' :
-                              'text-green-600'
-                            }`}>{selectedCase.severity}</p>
+                          <p className={`font-bold ${getSeverityClasses(selectedCase.severity).text}`}>{selectedCase.severity}</p>
                         </div>
                       </div>
 
