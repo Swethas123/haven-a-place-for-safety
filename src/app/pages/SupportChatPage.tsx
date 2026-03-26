@@ -12,6 +12,36 @@ import { useTranslation } from '../utils/i18n';
 import { ChatMessage } from '../types';
 import { isVictimAuthenticated } from '../utils/storage';
 
+const DANGER_KEYWORDS = ['hurt', 'attack', 'beaten', 'violence', 'help', 'kill'];
+
+function containsDanger(text: string): boolean {
+  const lower = text.toLowerCase();
+  return DANGER_KEYWORDS.some(kw => lower.includes(kw));
+}
+
+async function getCurrentLocation(): Promise<{ lat: number; lng: number; address: string }> {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve({ lat: 0, lng: 0, address: 'Unknown location' });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        let address = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+          const data = await res.json();
+          if (data.display_name) address = data.display_name;
+        } catch { /* use coords as fallback */ }
+        resolve({ lat, lng, address });
+      },
+      () => resolve({ lat: 0, lng: 0, address: 'Unknown location' })
+    );
+  });
+}
+
 // Add type definition for Web Speech API since it might be missing in default TS types
 declare global {
   interface Window {
@@ -193,6 +223,49 @@ export function SupportChatPage() {
     setMessages(prev => [...prev, userMessage]);
     setLoading(true);
     setInput('');
+
+    // Danger detection — runs in background, does not block UI or AI response
+    if (containsDanger(messageText)) {
+      getCurrentLocation().then(({ lat, lng, address }) => {
+        // Read user profile for real name
+        let userName = 'Anonymous';
+        try {
+          const profile = JSON.parse(localStorage.getItem('userProfile') || 'null');
+          if (profile?.name) userName = profile.name;
+        } catch { /* fallback to Anonymous */ }
+
+        // Build alert in the exact shape the admin dashboard renders
+        const newAlert = {
+          id: Date.now().toString(),
+          severity: 'High',
+          alert: `🚨 Emergency Detected via Chat — ${userName}`,
+          emotion: messageText,
+          location: { lat, lng },
+          address,
+          time: new Date().toISOString(),
+          response: 'critical',   // triggers "Police Dispatch" badge in dashboard
+        };
+
+        // Prepend to adminAlerts (keep existing ones)
+        const existing = JSON.parse(localStorage.getItem('adminAlerts') || '[]');
+        localStorage.setItem('adminAlerts', JSON.stringify([newAlert, ...existing]));
+
+        // Notify same-tab listeners (dashboard uses this to reload)
+        window.dispatchEvent(new Event('storage'));
+
+        // Background n8n webhook — fire and forget
+        fetch('http://localhost:5678/webhook/sos-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            severity: 'High',
+            emotion: messageText,
+            location: { lat, lng },
+            address,
+          }),
+        }).catch(() => {});
+      });
+    }
 
     // 2. Process AI response
     try {

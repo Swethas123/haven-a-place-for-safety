@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Phone, MapPin, User, Clock, AlertCircle, FileText, Cpu, Scan, CheckCircle2, Map, LogOut } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, AlertCircle, FileText, Cpu, Scan, CheckCircle2, Map, LogOut } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -64,73 +64,48 @@ export function CaseDetailPage() {
   return (
     <AdminGuard>
       {sosCase ? (
-        <div className="min-h-screen bg-gray-50 py-8">
+        <div className="relative min-h-screen bg-gray-50/50">
+          <div
+            className="fixed inset-0 z-0 opacity-[0.05] pointer-events-none"
+            style={{
+              backgroundImage: 'url("https://images.unsplash.com/photo-1497366811353-6870744d04b2?q=80&w=2000&auto=format&fit=crop")',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundAttachment: 'fixed',
+            }}
+          />
+
+          <div className="relative z-10 py-8">
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="flex items-center justify-between mb-6">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/authority-dashboard')}
-              >
+              <Button variant="ghost" onClick={() => navigate('/authority-dashboard')}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('auth_back_dash') || t('map_back_dash')}
+                {t('auth_back_dash')}
               </Button>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <Badge className={
                   sosCase.severity === 'High' ? 'bg-red-600' :
-                    sosCase.severity === 'Medium' ? 'bg-blue-600' :
-                      'bg-gray-600'
+                  sosCase.severity === 'Medium' ? 'bg-blue-600' :
+                  'bg-gray-600'
                 }>
-                  {sosCase.severity} {t('auth_severity') || t('dash_severity')}
+                  {sosCase.severity} {t('dash_severity')}
                 </Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="text-red-600 hover:bg-red-50 hover:text-red-700 h-8 px-2"
-                >
-                  <LogOut className="w-4 h-4 mr-1" />
-                  {t('auth_logout')}
+                <Button variant="outline" size="sm" onClick={handleLogout} className="text-red-600 border-red-200 hover:bg-red-50">
+                  <LogOut className="w-3 h-3 mr-1" /> {t('auth_logout')}
                 </Button>
               </div>
             </div>
 
-            <div className="flex items-start justify-between mb-8">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">{sosCase.name}</h1>
-                <p className="text-gray-600">{t('case_id')} {sosCase.id}</p>
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => setShowDecodeModal(true)}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  <Cpu className="w-4 h-4 mr-2" />
-                  {t('case_decode_view')}
-                </Button>
-                <div className="flex flex-col gap-2">
-                  <Select value={sosCase.status} onValueChange={handleStatusChange}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Open">Open</SelectItem>
-                      <SelectItem value="In Progress">In Progress</SelectItem>
-                      <SelectItem value="Closed">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
+            <h1 className="text-3xl font-bold mb-1">{sosCase.name}</h1>
+            <p className="text-gray-500 mb-8 text-sm">{t('case_id')} {sosCase.id}</p>
 
             <div className="grid lg:grid-cols-2 gap-6">
               {/* Left Column */}
               <div className="space-y-6">
-                {/* Contact Details */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Phone className="w-5 h-5" />
-                      {t('case_contact_details')}
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Phone className="w-4 h-4" /> {t('case_contact_details')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -151,32 +126,10 @@ export function CaseDetailPage() {
                   </CardContent>
                 </Card>
 
-                {/* Abuse Details */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="w-5 h-5" />
-                      {t('case_abuse_freq')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-600">{t('case_duration')}</p>
-                      <p className="font-semibold">{sosCase.frequency}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">{t('case_duration')}</p>
-                      <p className="font-semibold">{sosCase.durationOfAbuse}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Nature of Violence */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5" />
-                      {t('case_nature_violence')}
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <AlertCircle className="w-4 h-4" /> {t('case_nature_violence')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -191,99 +144,80 @@ export function CaseDetailPage() {
                   </CardContent>
                 </Card>
 
-                {/* Culprit Information */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="w-5 h-5" />
-                      {t('case_culprit_info')}
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Select value={sosCase.status} onValueChange={handleStatusChange}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Open">Open</SelectItem>
+                          <SelectItem value="In Progress">In Progress</SelectItem>
+                          <SelectItem value="Closed">Closed</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{sosCase.culpritDescription}</p>
-                  </CardContent>
                 </Card>
               </div>
 
               {/* Right Column */}
               <div className="space-y-6">
-                {/* Location */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <MapPin className="w-5 h-5" />
-                      {t('case_incident_loc')}
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <MapPin className="w-4 h-4" /> {t('case_incident_loc')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm mb-4">
-                      <strong>{t('case_address')}</strong> {sosCase.location.address}
-                    </p>
-                    <p className="text-sm mb-4">
-                      <strong>{t('case_coordinates')}</strong> {sosCase.location.lat.toFixed(4)}, {sosCase.location.lng.toFixed(4)}
-                    </p>
-
-                    {/* Embedded Map */}
-                    <div className="bg-gray-200 rounded-lg overflow-hidden h-64">
-                      <iframe
-                        width="100%"
-                        height="100%"
-                        frameBorder="0"
-                        style={{ border: 0 }}
-                        src={`https://www.google.com/maps?q=${sosCase.location.lat},${sosCase.location.lng}&output=embed`}
-                        allowFullScreen
-                      />
+                    <p className="text-sm text-gray-600 mb-1"><span className="font-medium">{t('case_address')}</span> {sosCase.location.address}</p>
+                    <p className="text-sm text-gray-600 mb-4"><span className="font-medium">{t('case_coordinates')}</span> {sosCase.location.lat.toFixed(4)}, {sosCase.location.lng.toFixed(4)}</p>
+                    <div className="rounded-lg overflow-hidden h-56 border border-gray-200">
+                      <iframe width="100%" height="100%" frameBorder="0" style={{ border: 0 }}
+                        src={`https://www.google.com/maps?q=${sosCase.location.lat},${sosCase.location.lng}&output=embed`} allowFullScreen />
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Current Situation */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
-                      {t('case_curr_situation')}
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <FileText className="w-4 h-4" /> {t('case_curr_situation')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{sosCase.currentSituation}</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{sosCase.currentSituation}</p>
                   </CardContent>
                 </Card>
 
-                {/* SOS Message */}
-                <Card>
+                <Card className="border-purple-200 bg-purple-50/50">
                   <CardHeader>
-                    <CardTitle>{t('case_gen_sos_msg')}</CardTitle>
+                    <CardTitle className="text-purple-900 text-base">{t('case_gen_sos_msg')}</CardTitle>
                     <CardDescription>{t('case_covert_msg_desc')}</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="bg-gray-50 p-4 rounded-lg border">
-                      <p className="text-sm whitespace-pre-wrap italic">{sosCase.sosMessage}</p>
+                    <div className="bg-white p-4 rounded-lg border border-purple-100 italic text-sm text-purple-800">
+                      {sosCase.sosMessage}
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Timeline */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>{t('case_timeline')}</CardTitle>
+                    <CardTitle className="text-base">{t('case_timeline')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       {sosCase.timeline.map((event, index) => (
                         <div key={event.id} className="flex gap-3">
                           <div className="flex flex-col items-center">
-                            <div className={`w-3 h-3 rounded-full ${index === 0 ? 'bg-blue-600' : 'bg-gray-300'
-                              }`} />
-                            {index < sosCase.timeline.length - 1 && (
-                              <div className="w-0.5 h-full bg-gray-200 mt-1" />
-                            )}
+                            <div className={`w-3 h-3 rounded-full ${index === 0 ? 'bg-purple-600' : 'bg-gray-300'}`} />
+                            {index < sosCase.timeline.length - 1 && <div className="w-0.5 flex-1 bg-gray-200 mt-1" />}
                           </div>
                           <div className="flex-1 pb-4">
                             <p className="font-medium text-sm">{event.event}</p>
-                            <p className="text-xs text-gray-500">
-                              {new Date(event.timestamp).toLocaleString()}
-                            </p>
+                            <p className="text-xs text-gray-500">{new Date(event.timestamp).toLocaleString()}</p>
                           </div>
                         </div>
                       ))}
@@ -292,6 +226,13 @@ export function CaseDetailPage() {
                 </Card>
               </div>
             </div>
+
+            <div className="mt-6">
+              <Button onClick={() => setShowDecodeModal(true)} className="bg-purple-600 hover:bg-purple-700">
+                <Cpu className="w-4 h-4 mr-2" /> {t('case_decode_view')}
+              </Button>
+            </div>
+          </div>
           </div>
         </div>
       ) : (

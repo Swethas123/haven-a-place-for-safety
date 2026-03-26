@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router';
-import { ArrowLeft, MapPin, Phone, User, AlertCircle, Clock, FileText, MessageCircle, Scale, Navigation, Shield, Heart, Home } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, User, AlertCircle, FileText, Scale, Navigation } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -148,17 +148,14 @@ export function UserDashboardPage() {
         <div className="relative z-10 py-8">
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="flex items-center justify-between mb-6">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/victim')}
-              >
+              <Button variant="ghost" onClick={() => navigate('/victim')}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 {t('dash_back_dash')}
               </Button>
               <Badge className={
                 sosCase.severity === 'High' ? 'bg-red-600' :
-                  sosCase.severity === 'Medium' ? 'bg-blue-600' :
-                    'bg-gray-600'
+                sosCase.severity === 'Medium' ? 'bg-blue-600' :
+                'bg-gray-600'
               }>
                 {sosCase.severity} {t('dash_severity')}
               </Badge>
@@ -184,19 +181,6 @@ export function UserDashboardPage() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-orange-600" />
-                    {t('dash_freq_violence')}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{sosCase.frequency}</p>
-                  <p className="text-sm text-gray-600 mt-1">Duration: {sosCase.durationOfAbuse}</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-red-600" />
                     {t('dash_nature_violence')}
                   </CardTitle>
@@ -211,18 +195,6 @@ export function UserDashboardPage() {
             <div className="grid lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-8">
                 <section className="grid lg:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <User className="w-4 h-4 text-gray-600" />
-                        {t('dash_culprit_details')}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-700">{sosCase.culpritDescription}</p>
-                    </CardContent>
-                  </Card>
-
                   <Card>
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -303,8 +275,8 @@ export function UserDashboardPage() {
                     <div className="flex items-center gap-3 mb-4">
                       <Badge className={
                         sosCase.status === 'Closed' ? 'bg-green-600' :
-                          sosCase.status === 'In Progress' ? 'bg-yellow-600' :
-                            'bg-orange-600'
+                        sosCase.status === 'In Progress' ? 'bg-yellow-600' :
+                        'bg-orange-600'
                       }>
                         {sosCase.status}
                       </Badge>

@@ -73,9 +73,46 @@ export function AdminGuard({ children }: AdminGuardProps) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-md border-2 border-blue-100 shadow-xl overflow-hidden rounded-3xl">
-                <CardHeader className="text-center bg-blue-600 text-white pb-8">
+        <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden">
+            {/* Background image */}
+            <div
+                className="absolute inset-0 z-0"
+                style={{
+                    backgroundImage: 'url("https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=2000&auto=format&fit=crop")',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                }}
+            />
+            {/* Dark overlay */}
+            <div className="absolute inset-0 z-0 bg-blue-950/70 backdrop-blur-sm" />
+
+            {/* Branding text on left (desktop) */}
+            <div className="relative z-10 hidden lg:flex flex-col justify-center pr-16 max-w-md">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-blue-500/30 rounded-2xl border border-blue-400/30">
+                        <ShieldAlert className="w-8 h-8 text-blue-200" />
+                    </div>
+                    <span className="text-2xl font-black text-white tracking-tight">HAVEN</span>
+                </div>
+                <h2 className="text-4xl font-bold text-white leading-tight mb-4">
+                    Emergency<br />Response System
+                </h2>
+                <p className="text-blue-200 text-base leading-relaxed">
+                    Secure access for authorized personnel only. Monitor, respond, and protect in real time.
+                </p>
+                <div className="mt-8 space-y-3">
+                    {['Real-time case monitoring', 'Live emergency alerts', 'Location-based response'].map(f => (
+                        <div key={f} className="flex items-center gap-2 text-blue-200 text-sm">
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                            {f}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Login card */}
+            <Card className="relative z-10 w-full max-w-md border-0 shadow-2xl overflow-hidden rounded-3xl">
+                <CardHeader className="text-center bg-blue-600 text-white pb-8 pt-8">
                     <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
                         <Users className="w-8 h-8 text-white" />
                     </div>

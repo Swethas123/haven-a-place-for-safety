@@ -109,12 +109,11 @@ export function MapViewPage() {
 
   return (
     <AdminGuard>
-      <div className="relative min-h-screen bg-white">
-        {/* Background Image Layer */}
+      <div className="relative min-h-screen bg-gray-50/50">
         <div
-          className="fixed inset-0 z-0 opacity-[0.12] pointer-events-none"
+          className="fixed inset-0 z-0 opacity-[0.05] pointer-events-none"
           style={{
-            backgroundImage: 'url("https://images.unsplash.com/photo-1450101499163-c8848c66ca85?q=80&w=2000&auto=format&fit=crop")',
+            backgroundImage: 'url("https://images.unsplash.com/photo-1497366811353-6870744d04b2?q=80&w=2000&auto=format&fit=crop")',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundAttachment: 'fixed',
